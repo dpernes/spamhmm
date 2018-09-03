@@ -5,8 +5,8 @@ from sklearn.model_selection import GridSearchCV, RandomizedSearchCV, Stratified
 from hmmlearn.utils import iter_from_X_lengths
 import argparse
 import pickle
-import h36m_data_utils as data_utils
-from global_utils import np2lst, lst2np, reg_relu, get_S_1HMM, get_S_KHMM
+from utils import h36m_data_utils as data_utils
+from utils.global_utils import np2lst, lst2np, reg_relu, get_S_1HMM, get_S_KHMM
 
 parser = argparse.ArgumentParser(description='Script configurations.')
 parser.add_argument('--action',type=str,default='walking')
@@ -34,7 +34,7 @@ args = parser.parse_args()
 
 np.random.seed(args.seed)
 
-import h36m_processdata as poseDataset
+import utils.h36m_processdata as poseDataset
 (data_train, data_test, data_stats, 
  Xforecast_pref, Xforecast_suff, 
  pruned_joints, padded_dims) = poseDataset.runall(args.data_path, args.action, 

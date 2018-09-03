@@ -4,8 +4,8 @@ from spamhmm import SpaMHMM
 from khmm import KHMM
 from sklearn.model_selection import train_test_split, GridSearchCV, RandomizedSearchCV, StratifiedKFold
 from sklearn import metrics
-import wifi_data_utils as data_utils
-from global_utils import np2lst, lst2np, reg_relu, get_S_1HMM, get_S_KHMM
+from utils import wifi_data_utils as data_utils
+from utils.global_utils import np2lst, lst2np, reg_relu, get_S_1HMM, get_S_KHMM
 import argparse
 
 parser = argparse.ArgumentParser(description='Script configurations.')
