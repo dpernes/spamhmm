@@ -7,6 +7,8 @@ from __future__ import print_function
 import numpy as np
 from six.moves import xrange # pylint: disable=redefined-builtin
 import copy
+import sys
+sys.path.append('./utils')
 import h36m_processdata as poseDataset
 
 def rotmat2euler( R ):
@@ -432,11 +434,11 @@ def predict(mdl, Xforecast_pref, Xforecast_suff, nsamp, data_stats, pruned_joint
       Xpred = np.zeros((suff_len, 3))
       # if type(mdl) == list:
       #   for i in range(nsamp):
-      #     Xpred += mdl[node_idx].sample(0, suff_len, Xseed=Xseq_pref[:, 3*joint_idx : 3*joint_idx + 3])[0]
+      #     Xpred += mdl[node_idx].sample(0, suff_len, Xpref=Xseq_pref[:, 3*joint_idx : 3*joint_idx + 3])[0]
       #   Xpred = Xpred[:, keep_dims]/nsamp  
       # else:
       for i in range(nsamp):
-        Xpred += mdl.sample(node_idx, suff_len, Xseed=Xseq_pref[:, 3*joint_idx : 3*joint_idx + 3])[0]
+        Xpred += mdl.sample(node_idx, suff_len, Xpref=Xseq_pref[:, 3*joint_idx : 3*joint_idx + 3])[0]
       Xpred = Xpred[:, keep_dims]/nsamp
       
       seq_gt = np.concatenate([seq_gt, Xgt], axis=1)

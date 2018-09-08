@@ -1,6 +1,7 @@
 import numpy as np
 from spamhmm import SpaMHMM
 from khmm import KHMM
+from hmmlearn import hmm
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV, StratifiedKFold
 from hmmlearn.utils import iter_from_X_lengths
 import argparse
@@ -18,8 +19,9 @@ parser.add_argument('--train_mhmm',type=int,default=1)
 parser.add_argument('--train_spamhmm',type=int,default=1)
 parser.add_argument('--train_1hmm',type=int,default=1)
 parser.add_argument('--train_khmm',type=int,default=1)
-parser.add_argument('--mix_dim',type=int,default=18)
-parser.add_argument('--n_components',type=int,default=12)
+parser.add_argument('--train_verbose',type=int,default=0)
+parser.add_argument('--mix_dim',type=int,default=30)
+parser.add_argument('--n_components',type=int,default=16)
 parser.add_argument('--n_iter',type=int,default=100)
 parser.add_argument('--reg',type=float,default=0.5)
 parser.add_argument('--n_iter_mstep',type=int,default=100)
@@ -34,6 +36,7 @@ args = parser.parse_args()
 
 np.random.seed(args.seed)
 
+
 import utils.h36m_processdata as poseDataset
 (data_train, data_test, data_stats, 
  Xforecast_pref, Xforecast_suff, 
@@ -42,6 +45,8 @@ import utils.h36m_processdata as poseDataset
                                                   args.forecast_prefix, args.forecast_suffix)
 
 A = data_utils.prune_adj_matrix(data_utils.build_adj_matrix(), pruned_joints)
+
+print('pruned_joints', pruned_joints)
 
 Xtrain, ytrain, lengths_train = data_utils.build_inputs(data_train)
 Xtest, ytest, lengths_test = data_utils.build_inputs(data_test)
@@ -59,13 +64,14 @@ if args.train and args.train_mhmm:
   if args.cv:
     print('Training MHMM using CV...')
     mhmm = SpaMHMM(n_nodes=K,
-                      mix_dim=M,
-                      n_components=S,
-                      n_features=D,
-                      graph=None,
-                      n_iter=args.n_iter,
-                      name='mhmm')
-    pgrid = {'mix_dim':[18, 22, 26], 'n_components':[12, 14, 16], 'graph':[None]} 
+                   mix_dim=M,
+                   n_components=S,
+                   n_features=D,
+                   graph=None,
+                   n_iter=args.n_iter,
+                   verbose=args.train_verbose,
+                   name='mhmm')
+    pgrid = {'mix_dim':[18, 22, 26, 30], 'n_components':[12, 14, 16], 'graph':[None]} 
     
     mhmmCV = GridSearchCV(mhmm, pgrid, cv=StratifiedKFold(3, shuffle=True), n_jobs=-1)
     mhmmCV.fit(Xtrain, ytrain)
@@ -81,12 +87,14 @@ if args.train and args.train_mhmm:
     M = args.mix_dim
     S = args.n_components
     mhmm = SpaMHMM(n_nodes=K,
-                      mix_dim=M,
-                      n_components=S,
-                      n_features=D,
-                      graph=None,
-                      n_iter=args.n_iter,
-                      name='mhmm')
+                   mix_dim=M,
+                   n_components=S,
+                   n_features=D,
+                   graph=None,
+                   n_iter=args.n_iter,
+                   verbose=args.train_verbose,
+                   # verbose=True,
+                   name='mhmm')
     mhmm.fit(Xtrain, ytrain)                  
     f = open(mhmm_path, 'wb')
     pickle.dump(mhmm, f)                  
@@ -104,15 +112,16 @@ if args.train and args.train_spamhmm:
   if args.cv:
     print('Training SpaMHMM using CV...')
     spamhmm = SpaMHMM(n_nodes=K,
-                         mix_dim=M,
-                         n_components=S,
-                         n_features=D,
-                         n_iter=args.n_iter,
-                         n_iter_mstep=args.n_iter_mstep,
-                         lr_mstep=args.lr_mstep,
-                         name='spamhmm')
+                      mix_dim=M,
+                      n_components=S,
+                      n_features=D,
+                      n_iter=args.n_iter,
+                      n_iter_mstep=args.n_iter_mstep,
+                      lr_mstep=args.lr_mstep,
+                      verbose=args.train_verbose,
+                      name='spamhmm')
     # pgrid = {'graph':[5e-3*A, 1e-3*A, 5e-3*A, 1e-2*A, 5e-2*A, 1e-1*A, 5e-1*A, 1e0*A, 5e0*A, 1e1*A, 5e1*A, 1e2*A, 5e2*A, 1e3*A, 5e3*A]}
-    pgrid = {'graph':[5e-2*A, 1e-1*A, 2.5e-1*A, 5e-1*A, 7.5e-1*A, 1e0*A, 5e0*A, 1e1*A, 5e1*A]}
+    pgrid = {'graph':[1e-4*A, 5e-4*A, 1e-3*A, 5e-2*A, 1e-1*A, 5e-1*A]}
     
     # spamhmmCV = RandomizedSearchCV(spamhmm, pgrid, n_iter=10, cv=StratifiedKFold(3, shuffle=True), n_jobs=-1)
     spamhmmCV = GridSearchCV(spamhmm, pgrid, cv=StratifiedKFold(3, shuffle=True), n_jobs=-1)
@@ -126,14 +135,15 @@ if args.train and args.train_spamhmm:
     print('Training SpaMHMM...')
     G = args.reg*A
     spamhmm = SpaMHMM(n_nodes=K,
-                         mix_dim=M,
-                         n_components=S,
-                         n_features=D,
-                         graph=G,
-                         n_iter=args.n_iter,
-                         n_iter_mstep=args.n_iter_mstep,
-                         lr_mstep=args.lr_mstep,
-                         name='spamhmm')
+                      mix_dim=M,
+                      n_components=S,
+                      n_features=D,
+                      graph=G,
+                      n_iter=args.n_iter,
+                      n_iter_mstep=args.n_iter_mstep,
+                      lr_mstep=args.lr_mstep,
+                      verbose=args.train_verbose,
+                      name='spamhmm')
     spamhmm.fit(Xtrain, ytrain)
     f = open(spamhmm_path, 'wb')
     pickle.dump(spamhmm, f)
@@ -160,7 +170,7 @@ if args.train and args.train_1hmm:
     pgrid = {'n_components':[S_1hmm-4, S_1hmm-3, S_1hmm-2, S_1hmm-1, S_1hmm,
                              S_1hmm+1, S_1hmm+2, S_1hmm+3, S_1hmm+4]}       
     
-    _1hmmCV = RandomizedSearchCV(spamhmm, pgrid, n_iter=5, cv=StratifiedKFold(3, shuffle=True), n_jobs=-1)
+    _1hmmCV = RandomizedSearchCV(_1hmm, pgrid, n_iter=5, cv=StratifiedKFold(3, shuffle=True), n_jobs=-1)
     _1hmmCV.fit(Xtrain, ytrain)
     print('Best parameters')
     print(_1hmmCV.best_params_)
@@ -170,23 +180,22 @@ if args.train and args.train_1hmm:
   else:
     print('Training 1HMM...')
     _1hmm = SpaMHMM(n_nodes=K,
-                  mix_dim=1,
-                  n_components=get_S_1HMM(K, M, S, D),
-                  n_features=D,
-                  graph=None,
-                  n_iter=args.n_iter,
-                  verbose=args.train_verbose,
-                  name='1hmm')
+                    mix_dim=1,
+                    n_components=get_S_1HMM(K, M, S, D),
+                    n_features=D,
+                    graph=None,
+                    n_iter=args.n_iter,
+                    verbose=args.train_verbose,
+                    name='1hmm')
     
     _1hmm.fit(Xtrain, ytrain)
     f = open(_1hmm_path, 'wb')
-    pickle.dump(hmm, f)
+    pickle.dump(_1hmm, f)
 else:
   f = open(_1hmm_path, 'rb')
   _1hmm = pickle.load(f)
 
 print('1HMM trained/loaded!')
-
 
 khmm_path = args.models_path +'/khmm_h36m_'+ args.action +'.pkl'
 if args.train and args.train_khmm:
@@ -201,7 +210,7 @@ if args.train and args.train_khmm:
     pgrid = {'n_components':[S_khmm-5, S_khmm-4, S_khmm-3, S_khmm-2, S_khmm-1, S_khmm,
                              S_khmm, S_khmm+1, S_khmm+2, S_khmm+3, S_khmm+4]}
                              
-    khmmCV = RandomizedSearchCV(spamhmm, pgrid, n_iter=5, cv=StratifiedKFold(3, shuffle=True), n_jobs=-1)
+    khmmCV = RandomizedSearchCV(khmm, pgrid, n_iter=5, cv=StratifiedKFold(3, shuffle=True), n_jobs=-1)
     khmmCV.fit(Xtrain, ytrain)
     print('Best parameters')
     print(khmmCV.best_params_)
@@ -240,7 +249,8 @@ data_utils.predict(khmm, Xforecast_pref, Xforecast_suff, args.n_samples,
 print()
 print('MHMM results')
 mhmm_sparsity = np.sum(mhmm.mixCoef == 0.)
-print('sparsity', mhmm_sparsity, 'rel', mhmm_sparsity/(mhmm.n_nodes * mhmm.mix_dim))
+print('absolute sparsity {0}, relative sparsity {1:.3f}'.format(mhmm_sparsity, 
+                                                          mhmm_sparsity/(mhmm.n_nodes * mhmm.mix_dim)))
 print('test loss', -mhmm.score(Xtest, ytest))
 data_utils.predict(mhmm, Xforecast_pref, Xforecast_suff, args.n_samples, 
                    data_stats, pruned_joints, padded_dims, args.action)
@@ -248,7 +258,8 @@ data_utils.predict(mhmm, Xforecast_pref, Xforecast_suff, args.n_samples,
 print()
 print('SpaMHMM results')
 spamhmm_sparsity = np.sum(spamhmm.mixCoef == 0.)
-print('sparsity', spamhmm_sparsity, 'rel', spamhmm_sparsity/(spamhmm.n_nodes * spamhmm.mix_dim))
+print('absolute sparsity {0}, relative sparsity {1:.3f}'.format(spamhmm_sparsity, 
+                                                         spamhmm_sparsity/(spamhmm.n_nodes * spamhmm.mix_dim)))
 print('test loss', -spamhmm.score(Xtest, ytest))
 data_utils.predict(spamhmm, Xforecast_pref, Xforecast_suff, args.n_samples, 
                    data_stats, pruned_joints, padded_dims, args.action)

@@ -144,10 +144,23 @@ def preprocess(X, train=True, n_components=None, scaler=None, pca=None):
     return X
 
 
+# def build_adj_matrix(dist_matrix_path):
+#   dist_matrix = np.genfromtxt(dist_matrix_path, delimiter=',')
+#   K = dist_matrix.shape[0]
+#   G = np.array([[1./dist_matrix[i,j] if i != j
+#                  else 0 
+#                  for j in range(K)] for i in range(K)])
+  
+#   if (G != G.T).any():
+#     G += G.T
+    
+#   G = G / (1.0*np.max(G))  
+
+
 def build_adj_matrix(dist_matrix_path):
   dist_matrix = np.genfromtxt(dist_matrix_path, delimiter=',')
   K = dist_matrix.shape[0]
-  G = np.array([[1./dist_matrix[i,j] if i != j
+  G = np.array([[1./(1 + dist_matrix[i,j]**2) if i != j
                  else 0 
                  for j in range(K)] for i in range(K)])
   
@@ -158,12 +171,13 @@ def build_adj_matrix(dist_matrix_path):
   
   return G
 
+
 def positive_rates(scores_neg, scores_pos, thr):
   true_negatives = np.sum(scores_neg >= thr)
   false_positives = np.sum(scores_neg < thr)
   true_positives = np.sum(scores_pos < thr)
   false_negatives = np.sum(scores_pos >= thr)
-  
+
   tpr = true_positives / (true_positives + false_negatives)
   fpr = false_positives / (false_positives + true_negatives)
   

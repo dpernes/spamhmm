@@ -7,6 +7,7 @@ from sklearn import metrics
 from utils import wifi_data_utils as data_utils
 from utils.global_utils import np2lst, lst2np, reg_relu, get_S_1HMM, get_S_KHMM
 import argparse
+import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser(description='Script configurations.')
 parser.add_argument('--data_dir',type=str,default='./wifi_data')
@@ -21,8 +22,8 @@ parser.add_argument('--train_spamhmm',type=int,default=1)
 parser.add_argument('--train_1hmm',type=int,default=1)
 parser.add_argument('--train_khmm',type=int,default=1)
 parser.add_argument('--train_verbose',type=int,default=0)
-parser.add_argument('--mix_dim',type=int,default=5)
-parser.add_argument('--n_components',type=int,default=3)
+parser.add_argument('--mix_dim',type=int,default=10)
+parser.add_argument('--n_components',type=int,default=10)
 parser.add_argument('--n_iter',type=int,default=100)
 parser.add_argument('--reg',type=float,default=0.5)
 parser.add_argument('--n_iter_mstep',type=int,default=100)
@@ -32,29 +33,40 @@ args = parser.parse_args()
 
 np.random.seed(args.seed)
 
-nets = ['Net1','Net3']
-anomalies_annotation = [('Net3', 2)]
+# nets = ['Net1', 'Net2', 'Net3', 'Net6']
+# anomalies_annotation = [('Net2', 3), ('Net3', 1), ('Net6', 1)]
+# X, y, anomalies = data_utils.get_data(args.data_dir, nets, 'output.csv', anomalies_annotation)
 
-# data = data_utils.build_streams(args.data_path)
-# X, y = data_utils.get_X_y_from_data(data)
-X, y, anomalies = data_utils.get_data(args.data_dir, nets, 'output.csv', anomalies_annotation)
-Xanom = [X[i] for i in range(len(anomalies)) if anomalies[i]] 
-yanom = [y[i] for i in range(len(anomalies)) if anomalies[i]] 
-Xnormal = [X[i] for i in range(len(anomalies)) if not anomalies[i]] 
-ynormal = [y[i] for i in range(len(anomalies)) if not anomalies[i]] 
-X = Xnormal
-y = ynormal
+# Xanom = [X[i] for i in range(len(anomalies)) if anomalies[i]] 
+# yanom = [y[i] for i in range(len(anomalies)) if anomalies[i]] 
+# Xnormal = [X[i] for i in range(len(anomalies)) if not anomalies[i]] 
+# ynormal = [y[i] for i in range(len(anomalies)) if not anomalies[i]]
 
-print('{} normal sequences'.format(len(X)))
-print('{} anomalous sequences'.format(len(Xanom)))
+# Xtrain, Xtest, ytrain, ytest = train_test_split(Xnormal, ynormal, test_size=0.33, stratify=ynormal, random_state=args.seed)
+
+nets_train = ['Net1']
+nets_test = ['Net2', 'Net3', 'Net6']
+anomalies_annotation = [('Net2', 3), ('Net3', 1), ('Net6', 1)]
+
+Xtrain, ytrain, _ = data_utils.get_data(args.data_dir, nets_train, 'output.csv')
+Xtest, ytest, anomalies = data_utils.get_data(args.data_dir, nets_test, 'output.csv', anomalies_annotation)
+
+Xanom = [Xtest[i] for i in range(len(anomalies)) if anomalies[i]] 
+yanom = [ytest[i] for i in range(len(anomalies)) if anomalies[i]] 
+Xnormal = [Xtest[i] for i in range(len(anomalies)) if not anomalies[i]] 
+ynormal = [ytest[i] for i in range(len(anomalies)) if not anomalies[i]] 
+Xtest = Xnormal
+ytest = ynormal
+
+print('{} normal sequences for training'.format(len(Xtrain)))
+print('{} normal sequences for testing'.format(len(Xtest)))
+print('{} anomalous sequences for testing'.format(len(Xanom)))
 print()
 
-K = len(set(y))
+K = len(set(ytrain))
 M = 1
 S = 1
 D = args.pca_dim
-
-Xtrain, Xtest, ytrain, ytest = train_test_split(X, y, test_size=0.33, stratify=y, random_state=args.seed)
 
 Xtrain, ytrain, lengths_train = lst2np(Xtrain, ytrain)
 Xtest, ytest, lengths_test = lst2np(Xtest, ytest)
@@ -82,7 +94,7 @@ if args.train and args.train_mhmm:
                    n_iter=args.n_iter,
                    verbose=args.train_verbose,
                    name='mhmm')
-    pgrid = {'mix_dim':[5, 10, 15, 20], 'n_components':[3, 5, 8], 'graph':[None]}
+    pgrid = {'mix_dim':[5, 10, 15, 20, 25], 'n_components':[3, 5, 8, 10], 'graph':[None]}
     
     mhmmCV = GridSearchCV(mhmm, pgrid, cv=StratifiedKFold(3, shuffle=True), n_jobs=-1)
     mhmmCV.fit(Xtrain, ytrain)
@@ -117,7 +129,6 @@ else:
 
 print('MHMM trained/loaded!')
 
-
 spamhmm_path = args.models_path +'/spamhmm_wifi.pkl'
 if args.train and args.train_spamhmm:
   if args.cv:
@@ -131,9 +142,9 @@ if args.train and args.train_spamhmm:
                       lr_mstep=args.lr_mstep,
                       verbose=args.train_verbose,
                       name='spamhmm')
-    pgrid = {'graph':[5e-3*A, 1e-3*A, 5e-3*A, 1e-2*A, 5e-2*A, 1e-1*A, 5e-1*A, 1e0*A, 5e0*A, 1e1*A, 5e1*A, 1e2*A, 5e2*A, 1e3*A, 5e3*A]}
+    pgrid = {'graph':[1e-4*A, 5e-4*A, 1e-3*A, 5e-3*A, 1e-2*A, 5e-2*A, 1e-1*A, 2.5e-1*A, 5e-1*A]}
     
-    spamhmmCV = RandomizedSearchCV(spamhmm, pgrid, n_iter=10, cv=StratifiedKFold(3, shuffle=True), n_jobs=-1)
+    spamhmmCV = GridSearchCV(spamhmm, pgrid, cv=StratifiedKFold(3, shuffle=True), n_jobs=-1)
     spamhmmCV.fit(Xtrain, ytrain)
     print('Best parameters')
     print(spamhmmCV.best_params_)
@@ -161,9 +172,6 @@ else:
   f = open(spamhmm_path, 'rb')
   spamhmm = pickle.load(f)
 
-print('SpaMHMM trained/loaded!')
-
-
 _1hmm_path = args.models_path +'/1hmm_wifi.pkl'
 if args.train and args.train_1hmm:
   if args.cv:
@@ -180,7 +188,7 @@ if args.train and args.train_1hmm:
     pgrid = {'n_components':[S_1hmm-5, S_1hmm-4, S_1hmm-3, S_1hmm-2, S_1hmm-1, S_1hmm,
                              S_1hmm, S_1hmm+1, S_1hmm+2, S_1hmm+3, S_1hmm+4]}       
     
-    _1hmmCV = RandomizedSearchCV(spamhmm, pgrid, n_iter=5, cv=StratifiedKFold(3, shuffle=True), n_jobs=-1)
+    _1hmmCV = RandomizedSearchCV(_1hmm, pgrid, n_iter=5, cv=StratifiedKFold(3, shuffle=True), n_jobs=-1)
     _1hmmCV.fit(Xtrain, ytrain)
     print('Best parameters')
     print(_1hmmCV.best_params_)
@@ -190,17 +198,17 @@ if args.train and args.train_1hmm:
   else:
     print('Training 1HMM...')
     _1hmm = SpaMHMM(n_nodes=K,
-                  mix_dim=1,
-                  n_components=get_S_1HMM(K, M, S, D),
-                  n_features=D,
-                  graph=None,
-                  n_iter=args.n_iter,
-                  verbose=args.train_verbose,
-                  name='1hmm')
+                    mix_dim=1,
+                    n_components=get_S_1HMM(K, M, S, D),
+                    n_features=D,
+                    graph=None,
+                    n_iter=args.n_iter,
+                    verbose=args.train_verbose,
+                    name='1hmm')
     
     _1hmm.fit(Xtrain, ytrain)
     f = open(_1hmm_path, 'wb')
-    pickle.dump(hmm, f)
+    pickle.dump(_1hmm, f)
 else:
   f = open(_1hmm_path, 'rb')
   _1hmm = pickle.load(f)
@@ -221,7 +229,7 @@ if args.train and args.train_khmm:
     pgrid = {'n_components':[S_khmm-5, S_khmm-4, S_khmm-3, S_khmm-2, S_khmm-1, S_khmm,
                              S_khmm, S_khmm+1, S_khmm+2, S_khmm+3, S_khmm+4]}
                              
-    khmmCV = RandomizedSearchCV(spamhmm, pgrid, n_iter=5, cv=StratifiedKFold(3, shuffle=True), n_jobs=-1)
+    khmmCV = RandomizedSearchCV(khmm, pgrid, n_iter=5, cv=StratifiedKFold(3, shuffle=True), n_jobs=-1)
     khmmCV.fit(Xtrain, ytrain)
     print('Best parameters')
     print(khmmCV.best_params_)
@@ -251,6 +259,7 @@ print('test score', _1hmm.score(Xtest, ytest))
 print('anomalies score', _1hmm.score(Xanom, yanom))
 _1hmm_auc, _1hmm_fpr, _1hmm_tpr = data_utils.get_auc(_1hmm, Xtest, ytest, Xanom, yanom)
 print('AUC', _1hmm_auc)
+
 
 print()
 print('KHMM results')

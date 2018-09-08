@@ -16,7 +16,8 @@ class KHMM(BaseEstimator):
     self.tol = tol
     self.verbose = verbose
     self.name = name
-    
+  
+  def init_params(self):
     self.hmm = [SpaMHMM(n_nodes=1,
                         mix_dim=1,
                         n_components=self.n_components,
@@ -48,6 +49,8 @@ class KHMM(BaseEstimator):
         y_valid = np.array(y_valid)
       
       validloss_hist = []
+    
+    self.init_params()
     
     for k in range(self.n_nodes):
       lengthsk = [lengths[i] for i in range(len(lengths)) if y[i]==k]

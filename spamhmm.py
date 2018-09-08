@@ -4,7 +4,7 @@ from hmmlearn import hmm
 from hmmlearn.base import ConvergenceMonitor
 from hmmlearn.utils import normalize, log_normalize, iter_from_X_lengths
 from scipy.misc import logsumexp
-from global_utils import relu, drelu, relu_normalization
+from utils.global_utils import relu, drelu, relu_normalization
 import pickle
 import time
 
@@ -34,7 +34,10 @@ class SpaMHMM(BaseEstimator):
     self.verbose = verbose
     self.name = name
     
-  def init_params(self):
+  def init_params(self, X):
+    '''
+    Parameters initialization.
+    '''
     self.mixCoefUnNorm = np.random.rand(self.n_nodes, self.mix_dim) + 1e-9
     self.mixCoef = relu_normalization(self.mixCoefUnNorm, axis=1)
     
@@ -49,26 +52,18 @@ class SpaMHMM(BaseEstimator):
     self.second_moment_ = np.zeros_like(self.mixCoef)
     
     if self.emission == 'gaussian':
-      emissProbMean = np.random.randn(self.mix_dim, self.n_components, self.n_features)
-      emissProbVar = np.ones((self.mix_dim, self.n_components, self.n_features)) # diagonal covariance matrices
-      
       self.mixModels = [hmm.GaussianHMM(n_components=self.n_components, 
-                                        covariance_type="diag", 
-                                        init_params='')
+                                        covariance_type='diag')
                         for i in range(self.mix_dim)]
                         
       for m in range(self.mix_dim):
-        self.mixModels[m].n_features = self.n_features
-        self.mixModels[m].startprob_ = startProb[m, :]
-        self.mixModels[m].transmat_ = transProb[m, :, :]
-        self.mixModels[m].means_ = emissProbMean[m, :, :]
-        self.mixModels[m].covars_ = emissProbVar[m, :, :]
+        self.mixModels[m]._init(X)
     else:
       raise NotImplementedError('{} emission is not implemented'.format(self.emission))
       
       
   def scores_per_seq(self, X, y, lengths=None):
-    """
+    '''
     Computes the log-likelihood for each sequence in X coming from nodes y.
     Inputs:
       X - np.array of size (n_samples, n_features).
@@ -77,7 +72,7 @@ class SpaMHMM(BaseEstimator):
                 with size n_sequences.
     Outputs:
       log_likelihood - np.array of size n_sequences.
-    """
+    '''
     if type(X) == list:
       lengths = [x.shape[0] for x in X]
       X = np.concatenate(X)
@@ -102,7 +97,7 @@ class SpaMHMM(BaseEstimator):
     
     
   def score(self, X, y, lengths=None):
-    """
+    '''
     Computes the mean log-likelihood for sequences in X coming from nodes y.
     Inputs:
       X - np.array of size (n_samples, n_features).
@@ -111,11 +106,13 @@ class SpaMHMM(BaseEstimator):
                 with size n_sequences.
     Outputs:
       log_likelihood - scalar.
-    """
+    '''
     if type(X) == list:
       lengths = [x.shape[0] for x in X]
       X = np.concatenate(X)
       y = np.array(y)
+    
+    self._check()
     
     Nsamples = X.shape[0]
     log_likelihood = np.sum(self.scores_per_seq(X, y, lengths))  
@@ -123,8 +120,24 @@ class SpaMHMM(BaseEstimator):
     return log_likelihood/Nsamples
   
   
+  def _check(self):
+    '''
+    Validates mixCoef parameter. The remaining parameters are validated
+    by the hmm.check() routine.
+    Raises
+    ------
+    ValueError
+        If mixCoef have an invalid shape or do not sum to 1.
+    '''
+    if self.mixCoef.shape != (self.n_nodes, self.mix_dim):
+        raise ValueError("mixCoef must have length n_components")
+    if not np.allclose(self.mixCoef.sum(axis=1), 1.0):
+        raise ValueError("mixCoef must sum to 1.0 (got {0:.4f})"
+                         .format(self.mixCoef.sum(axis=1)))
+  
+  
   def _compute_mixture_posteriors(self, X, y, lengths):
-    """
+    '''
     Computes the posterior log-probability of each mixture component given the
     observations X, y.
     Inputs:
@@ -134,7 +147,7 @@ class SpaMHMM(BaseEstimator):
                 with size n_sequences.
     Outputs:
       logmixpost - np.array of size (n_sequences, mix_dim).
-    """
+    '''
     N = len(lengths)
     
     logmixpost = np.zeros((N, self.mix_dim))
@@ -151,7 +164,7 @@ class SpaMHMM(BaseEstimator):
   
   
   def _compute_sufficient_statistics_in_mix_comp(self, X, y, lengths, logmixpost, stats):
-    """
+    '''
     Accumulates sufficient statistics for the parameters of each HMM in the 
     mixture.
     Inputs:
@@ -161,7 +174,7 @@ class SpaMHMM(BaseEstimator):
                 with size n_sequences.
       logmixpost - np.array of size (n_sequences, mix_dim).
       stats - dictionary containing sufficient statistics (changed inplace).
-    """
+    '''
     for m in range(self.mix_dim):
       for seq_idx, (i,j) in enumerate(iter_from_X_lengths(X, lengths)):
         if self.mixCoef[y[seq_idx], m] == 0.:
@@ -182,7 +195,7 @@ class SpaMHMM(BaseEstimator):
           
           
   def _compute_sufficient_statistics(self, X, y, lengths):
-    """
+    '''
     Computes sufficient statistics to be used in the M-step.
     Inputs:
       X - np.array of size (n_samples, n_features).
@@ -191,7 +204,7 @@ class SpaMHMM(BaseEstimator):
                 with size n_sequences.
     Outputs:
       stats - dictionary containing sufficient statistics.
-    """
+    '''
     stats = {'mix_post': np.zeros((self.n_nodes, self.mix_dim))}
     for m in range(self.mix_dim):
       stats['mix_idx' + str(m)] = self.mixModels[m]._initialize_sufficient_statistics()
@@ -214,13 +227,14 @@ class SpaMHMM(BaseEstimator):
    
     
   def _fit_coef(self, stats):
-    """
+    '''
     Performs the M step of the EM algorithm for the mixture coefficients, via
     gradient ascent. This function is used only when a graph is given.
     Inputs:
       stats - dictionary containing sufficient statistics.
       n_iter - number of update iterations.
-    """
+    '''
+    Nseqs = np.sum(stats['n_seqs_per_node'])
     for it in range(self.n_iter_mstep):
       grad = np.zeros_like(self.mixCoefUnNorm)
       post_coef_dif = stats['mix_post'] - self.mixCoef * stats['n_seqs_per_node'].reshape(-1, 1)
@@ -228,7 +242,7 @@ class SpaMHMM(BaseEstimator):
       reg_dif = self.mixCoef*(G_mixCoef - np.sum(self.mixCoef * G_mixCoef, axis=1).reshape(-1, 1))
       mask = (self.mixCoefUnNorm > 0.)
       grad[mask] = drelu(self.mixCoefUnNorm[mask]) / relu(self.mixCoefUnNorm[mask])
-      grad *= post_coef_dif + reg_dif
+      grad *= post_coef_dif/Nseqs + reg_dif
       
       self.mixCoefUnNorm = self._adam(self.mixCoefUnNorm, grad)
       
@@ -236,7 +250,7 @@ class SpaMHMM(BaseEstimator):
     
   
   def _adam(self, w, dw, delta=1e-8):
-    """
+    '''
     Performs an ascending step using the Adam algorithm.
     Inputs:
       w - np.array, the current value of the parameter.
@@ -246,7 +260,7 @@ class SpaMHMM(BaseEstimator):
     Outputs:
       next_w - np.array with the same shape as w, the updated value of the
                parameter.
-    """  
+    '''  
     next_first_moment = self.rho1*self.first_moment_ + (1-self.rho1)*dw
     next_second_moment = self.rho2*self.second_moment_ + (1-self.rho2)*dw**2
     
@@ -263,12 +277,12 @@ class SpaMHMM(BaseEstimator):
     
     return next_w
   
-  def  _do_mstep(self, stats, X, y, lengths=None):
-    """
+  def  _do_mstep(self, stats):
+    '''
     Performs the M step of the EM algorithm, updating all model parameters.
     Inputs:
       stats - dictionary containing sufficient statistics.
-    """
+    '''
     if self.reg_:
       self._fit_coef(stats)
     else:
@@ -280,30 +294,29 @@ class SpaMHMM(BaseEstimator):
    
    
   def fit(self, X, y, lengths=None, valid_data=None):
-    """
+    '''
     Trains SpaMHMM on data X, y, using the EM algorithm.
     Inputs:
       X - np.array of size (n_samples, n_features).
       y - np.int of size n_sequences, whose entries are in the range [0, n_nodes-1].
       lengths - list containing the lengths of each individual sequence in X,
                 with size n_sequences.
-      n_iter - number of training iterations.
       valid_data - tuple (X_valid, y_valid, lengths_valid) containing the validation data;
                    if validation data is given, the model with the lowest validation loss is
                    saved in a pickle file (optional, default:None).
-    """
-    print("PARAMS")
-    print("  mix_dim", self.mix_dim)
-    print("  n_components", self.n_components)
-    print("  graph", self.graph)
-    print()
+    '''
+    # print('PARAMS')
+    # print('  mix_dim', self.mix_dim)
+    # print('  n_components', self.n_components)
+    # print('  graph', self.graph)
+    # print()
     
     if type(X) == list:
       lengths = [x.shape[0] for x in X]
       X = np.concatenate(X)
       y = np.array(y)
     
-    self.monitor_ = ConvergenceMonitor(self.tol, self.n_iter, self.verbose)
+    self.monitor_ = ConvergenceMonitor(self.tol, self.n_iter, False)
     
     if valid_data is not None:
       X_valid, y_valid, lengths_valid = valid_data
@@ -321,14 +334,15 @@ class SpaMHMM(BaseEstimator):
     else:
       self.reg_ = False
     
-    self.init_params()
+    self.init_params(X)
+    self._check()
     
     prevscore = float('-inf')
     trainloss_hist = []
     for it in range(self.n_iter):
       t0 = time.time()
       stats = self._compute_sufficient_statistics(X, y, lengths)
-      self._do_mstep(stats, X, y, lengths)
+      self._do_mstep(stats)
       t1 = time.time()
       
       currscore = self.score(X, y, lengths)
@@ -344,15 +358,17 @@ class SpaMHMM(BaseEstimator):
       
       if self.verbose:
         if (not self.reg_) and (prevscore > currscore):
-          print('WARNING: NLL loss has increased at iteration {}!'.format(it))
-          print('prev loss = {}, curr loss = {}'.format(-prevscore, -currscore))
+          print('WARNING: loss has increased at iteration {}!'.format(it))
+          print('prev loss = {:.5f}, curr loss = {:.5f}'.format(-prevscore, -currscore))
         elif valid_data is not None:
-          print('it {}: train loss = {:.5f}, valid loss = {:.5f}, {:.5f} sec/it'.format(it, -currscore, -validscore, t1-t0))
+          print('it {}: train loss = {:.5f}, valid loss = {:.5f}, {:.3f} sec/it'.format(it+1, -currscore, -validscore, t1-t0))
         else:
-          print('it {}: loss = {:.5f}, {:.5f} sec/it'.format(it, -currscore, t1-t0))
+          print('it {}: loss = {:.5f}, {:.3f} sec/it'.format(it+1, -currscore, t1-t0))
       
       self.monitor_.report(currscore)
       if self.monitor_.converged:
+        if self.verbose:
+          print('Loss improved less than {}. Training stopped.'.format(self.tol))
         break
       
       prevscore = currscore
@@ -364,7 +380,7 @@ class SpaMHMM(BaseEstimator):
     
     
   def predict_next_observ(self, X, y, x_candidates):
-    """
+    '''
     Finds the most likely next observation, given the sequence X at node y, by
     trying every candidate point in x_candidates.
     Inputs:
@@ -373,7 +389,7 @@ class SpaMHMM(BaseEstimator):
       x_candidates - candidate points, np.array of size (n_candidates, n_features).
     Outputs:
       next_observ - predicted observation, np.array of size n_features.
-    """
+    '''
     length = X.shape[0]
     Ncand = x_candidates.shape[0]
     ll_per_comp_X = np.zeros(self.mix_dim)
@@ -402,7 +418,7 @@ class SpaMHMM(BaseEstimator):
   
     
   def greedy_predict_seq(self, X, y, x_candidates, n_samples):
-    """
+    '''
     Finds a greedy approximation of the most likely next n_samples, given the 
     sequence X at node y, trying every candidate point in x_candidates for each sample.
     Inputs:
@@ -411,7 +427,7 @@ class SpaMHMM(BaseEstimator):
       x_candidates - candidate points, np.array of size (n_candidates, n_features).
     Outputs:
       Xpred - predicted sequence, np.array of size (n_samples, n_features).
-    """
+    '''
     length = X.shape[0]
     Xpred = X
     for i in range(n_samples):
@@ -422,7 +438,7 @@ class SpaMHMM(BaseEstimator):
   
   
   def sample(self, y, n_samples, Xpref=None):
-    """
+    '''
     Samples a sequence of observations from the MHMM observation distribution.
     If a prefix sequence is given, the new sequence is sampled from the 
     posterior distribution given that prefix sequence.
@@ -432,10 +448,10 @@ class SpaMHMM(BaseEstimator):
       Xpref - prefix sequence, np.array of size (pref_len, n_features) 
               (optional, default: None).
     Outputs:
-      X - sampled observations, np.array of size (n_samples, n_features)
+      X - sampled sequence, np.array of size (n_samples, n_features)
       mix_idx - the component which the sequence was sampled from, integer.
       state_seq - the produced state sequence, np.int of size n_samples.
-    """
+    '''
     if Xpref is not None:
       mix_post = self.mixCoef[y, :]
     else:
