@@ -334,11 +334,17 @@ def build_adj_matrix():
   A[9, 10]  = 1
   A[10, 11] = 1
   A[12, 13] = 1
-  A[13, 17] = 1
+  
+  # A[13, 17] = 1
+  A[14, 17] = 1
+  
   A[13, 14] = 1
   A[14, 15] = 1
   A[15, 16] = 1
-  A[13, 25] = 1
+  
+  # A[13, 25] = 1
+  A[14, 25] = 1
+  
   A[17, 18] = 1
   A[18, 19] = 1
   A[19, 20] = 1
@@ -443,7 +449,7 @@ def predict(mdl, Xforecast_pref, Xforecast_suff, nsamp, data_stats, pruned_joint
       
       seq_gt = np.concatenate([seq_gt, Xgt], axis=1)
       seq_pred = np.concatenate([seq_pred, Xpred], axis=1)
-      
+    
     seq_gt = poseDataset.unNormalizeData(seq_gt, data_stats['mean'], data_stats['std'], data_stats['ignore_dimensions'])
     seq_pred = poseDataset.unNormalizeData(seq_pred, data_stats['mean'], data_stats['std'], data_stats['ignore_dimensions'])
     
@@ -458,7 +464,7 @@ def predict(mdl, Xforecast_pref, Xforecast_suff, nsamp, data_stats, pruned_joint
       all_preds[:, seq_idx, :] = seq_pred
     
     print('Seq {} done'.format(seq_idx))
-    
+  
   mean_errors = np.zeros( (Nseqs, suff_len) )
   for i in range(Nseqs):
     eulerchannels_pred = all_preds[:,i,:]
@@ -494,6 +500,6 @@ def predict(mdl, Xforecast_pref, Xforecast_suff, nsamp, data_stats, pruned_joint
   
   # Pretty print of the results for 80, 160, 320, 400, 560 and 1000 ms
   print('{0: <16} |'.format(action), end='')
-  for ms in [1,3,7,9,13,24]:
-    print(' {0:.3f} |'.format( mean_mean_errors[ms] ), end='')  
+  for ms in [1,3,7,9]:
+    print(' {0:.2f} &'.format( mean_mean_errors[ms] ), end='')  
   print()  

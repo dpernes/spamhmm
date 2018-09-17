@@ -39,6 +39,7 @@ class SpaMHMM(BaseEstimator):
     Parameters initialization.
     '''
     self.mixCoefUnNorm = np.random.rand(self.n_nodes, self.mix_dim) + 1e-9
+    # self.mixCoefUnNorm = np.ones((self.n_nodes, self.mix_dim))
     self.mixCoef = relu_normalization(self.mixCoefUnNorm, axis=1)
     
     startProb = np.exp(np.random.randn(self.mix_dim, self.n_components))
@@ -372,7 +373,11 @@ class SpaMHMM(BaseEstimator):
         break
       
       prevscore = currscore
-      
+    
+    # mask = np.isclose(self.mixCoef, 0., atol=1e-16)
+    # self.mixCoef[mask] = 0.
+    # normalize(self.mixCoef, axis=1)
+    
     if valid_data:
       return trainloss_hist, validloss_hist
     else:
@@ -453,10 +458,10 @@ class SpaMHMM(BaseEstimator):
       state_seq - the produced state sequence, np.int of size n_samples.
     '''
     if Xpref is not None:
-      mix_post = self.mixCoef[y, :]
-    else:
       pref_len = Xpref.shape[0]
       mix_post = np.exp(self._compute_mixture_posteriors(Xpref, y, [pref_len]))
+    else:
+      mix_post = self.mixCoef[y, :]
     
     mix_idx = np.random.choice(self.mix_dim, p=mix_post.reshape(-1))
     

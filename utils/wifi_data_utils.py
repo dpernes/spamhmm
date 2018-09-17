@@ -4,6 +4,7 @@ from pandas import read_csv
 from sklearn import preprocessing, metrics
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
+plt.switch_backend('Agg')
 
 # '''
 # Builds one stream per AP and per day. Discards APs where data is missing. 
@@ -157,7 +158,7 @@ def preprocess(X, train=True, n_components=None, scaler=None, pca=None):
 #   G = G / (1.0*np.max(G))  
 
 
-def build_adj_matrix(dist_matrix_path):
+def build_adj_matrix(dist_matrix_path, eps=1e-1):
   dist_matrix = np.genfromtxt(dist_matrix_path, delimiter=',')
   K = dist_matrix.shape[0]
   G = np.array([[1./(1 + dist_matrix[i,j]**2) if i != j
@@ -168,6 +169,7 @@ def build_adj_matrix(dist_matrix_path):
     G += G.T
     
   G = G / (1.0*np.max(G))  
+  G[G < eps] = 0.
   
   return G
 

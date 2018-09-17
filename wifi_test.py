@@ -5,7 +5,7 @@ from khmm import KHMM
 from sklearn.model_selection import train_test_split, GridSearchCV, RandomizedSearchCV, StratifiedKFold
 from sklearn import metrics
 from utils import wifi_data_utils as data_utils
-from utils.global_utils import np2lst, lst2np, reg_relu, get_S_1HMM, get_S_KHMM
+from utils.global_utils import np2lst, lst2np, reg_graph, get_S_1HMM, get_S_KHMM
 import argparse
 import matplotlib.pyplot as plt
 
@@ -25,9 +25,9 @@ parser.add_argument('--train_verbose',type=int,default=0)
 parser.add_argument('--mix_dim',type=int,default=10)
 parser.add_argument('--n_components',type=int,default=10)
 parser.add_argument('--n_iter',type=int,default=100)
-parser.add_argument('--reg',type=float,default=0.5)
+parser.add_argument('--reg',type=float,default=0.05)
 parser.add_argument('--n_iter_mstep',type=int,default=100)
-parser.add_argument('--lr_mstep',type=float,default=1e-3)
+parser.add_argument('--lr_mstep',type=float,default=5e-3)
 parser.add_argument('--seed',type=int,default=42)
 args = parser.parse_args()
 
@@ -45,8 +45,8 @@ np.random.seed(args.seed)
 # Xtrain, Xtest, ytrain, ytest = train_test_split(Xnormal, ynormal, test_size=0.33, stratify=ynormal, random_state=args.seed)
 
 nets_train = ['Net1']
-nets_test = ['Net2', 'Net3', 'Net6']
-anomalies_annotation = [('Net2', 3), ('Net3', 1), ('Net6', 1)]
+nets_test = ['Net2', 'Net3', 'Net5', 'Net6']
+anomalies_annotation = [('Net2', 3), ('Net3', 1), ('Net5', 1), ('Net6', 1)]
 
 Xtrain, ytrain, _ = data_utils.get_data(args.data_dir, nets_train, 'output.csv')
 Xtest, ytest, anomalies = data_utils.get_data(args.data_dir, nets_test, 'output.csv', anomalies_annotation)
@@ -94,7 +94,7 @@ if args.train and args.train_mhmm:
                    n_iter=args.n_iter,
                    verbose=args.train_verbose,
                    name='mhmm')
-    pgrid = {'mix_dim':[5, 10, 15, 20, 25], 'n_components':[3, 5, 8, 10], 'graph':[None]}
+    pgrid = {'mix_dim':[5, 10, 15], 'n_components':[3, 5, 8, 10]}
     
     mhmmCV = GridSearchCV(mhmm, pgrid, cv=StratifiedKFold(3, shuffle=True), n_jobs=-1)
     mhmmCV.fit(Xtrain, ytrain)
@@ -129,6 +129,27 @@ else:
 
 print('MHMM trained/loaded!')
 
+
+def get_G_from_mhmm(mdl):
+  K = mdl.n_nodes
+  G = np.zeros((K, K))
+  
+  for j in range(K):
+    for k in range(K):
+      if k == j:
+        continue
+      G[j,k] = mdl.mixCoef[j, :] @  mdl.mixCoef[k, :]
+  
+  G = G/np.max(G)
+  G[G < 1e-1] = 0.
+  
+  return G    
+
+# Aa = get_G_from_mhmm(mhmm)
+
+print("A", A)
+# print("Aa", Aa)
+
 spamhmm_path = args.models_path +'/spamhmm_wifi.pkl'
 if args.train and args.train_spamhmm:
   if args.cv:
@@ -142,7 +163,8 @@ if args.train and args.train_spamhmm:
                       lr_mstep=args.lr_mstep,
                       verbose=args.train_verbose,
                       name='spamhmm')
-    pgrid = {'graph':[1e-4*A, 5e-4*A, 1e-3*A, 5e-3*A, 1e-2*A, 5e-2*A, 1e-1*A, 2.5e-1*A, 5e-1*A]}
+    pgrid = {'graph':[1e-4*A, 5e-4*A, 1e-3*A, 5e-3*A, 1e-2*A, 5e-2*A, 1e-1*A]}
+    # pgrid = {'graph':[1e-4*Aa, 5e-4*Aa, 1e-3*Aa, 5e-3*Aa, 1e-2*Aa, 5e-2*Aa, 1e-1*Aa]}
     
     spamhmmCV = GridSearchCV(spamhmm, pgrid, cv=StratifiedKFold(3, shuffle=True), n_jobs=-1)
     spamhmmCV.fit(Xtrain, ytrain)
@@ -153,6 +175,7 @@ if args.train and args.train_spamhmm:
     spamhmm = spamhmmCV.best_estimator_
   else:
     print('Training SpaMHMM...')
+    # G = args.reg*Aa
     G = args.reg*A
     spamhmm = SpaMHMM(n_nodes=K,
                       mix_dim=M,
@@ -172,6 +195,9 @@ else:
   f = open(spamhmm_path, 'rb')
   spamhmm = pickle.load(f)
 
+print('SpaMHMM trained/loaded!')
+
+
 _1hmm_path = args.models_path +'/1hmm_wifi.pkl'
 if args.train and args.train_1hmm:
   if args.cv:
@@ -185,17 +211,16 @@ if args.train and args.train_1hmm:
                     verbose=args.train_verbose,
                     name='1hmm')
     S_1hmm = get_S_1HMM(K, M, S, D)      
-    pgrid = {'n_components':[S_1hmm-5, S_1hmm-4, S_1hmm-3, S_1hmm-2, S_1hmm-1, S_1hmm,
-                             S_1hmm, S_1hmm+1, S_1hmm+2, S_1hmm+3, S_1hmm+4]}       
+    pgrid = {'n_components':[int(S_1hmm/2), int(2*S_1hmm/3), S_1hmm, int(3*S_1hmm/2), 2*S_1hmm]}       
     
-    _1hmmCV = RandomizedSearchCV(_1hmm, pgrid, n_iter=5, cv=StratifiedKFold(3, shuffle=True), n_jobs=-1)
+    _1hmmCV = GridSearchCV(_1hmm, pgrid, cv=StratifiedKFold(3, shuffle=True), n_jobs=-1)
     _1hmmCV.fit(Xtrain, ytrain)
     print('Best parameters')
     print(_1hmmCV.best_params_)
     f = open(_1hmm_path, 'wb')
     pickle.dump(_1hmmCV.best_estimator_, f)
     _1hmm = _1hmmCV.best_estimator_
-  else:
+  else:  
     print('Training 1HMM...')
     _1hmm = SpaMHMM(n_nodes=K,
                     mix_dim=1,
@@ -226,17 +251,16 @@ if args.train and args.train_khmm:
                 verbose=args.train_verbose,
                 name='khmm')
     S_khmm = get_S_KHMM(K, M, S, D)
-    pgrid = {'n_components':[S_khmm-5, S_khmm-4, S_khmm-3, S_khmm-2, S_khmm-1, S_khmm,
-                             S_khmm, S_khmm+1, S_khmm+2, S_khmm+3, S_khmm+4]}
+    pgrid = {'n_components':[int(S_khmm/2), int(2*S_khmm/3), S_khmm, int(3*S_khmm/2), 2*S_khmm]}
                              
-    khmmCV = RandomizedSearchCV(khmm, pgrid, n_iter=5, cv=StratifiedKFold(3, shuffle=True), n_jobs=-1)
+    khmmCV = GridSearchCV(khmm, pgrid, cv=StratifiedKFold(3, shuffle=True), n_jobs=-1)
     khmmCV.fit(Xtrain, ytrain)
     print('Best parameters')
     print(khmmCV.best_params_)
     f = open(khmm_path, 'wb')
     pickle.dump(khmmCV.best_estimator_, f)
-    khmm = khmmCV.best_estimator_                         
-  else:
+    khmm = khmmCV.best_estimator_
+  else:  
     print('Training KHMM...')
     khmm = KHMM(n_nodes=K,
                 n_components=get_S_KHMM(K, M, S, D), 
@@ -253,35 +277,48 @@ else:
 
 print('KHMM trained/loaded!')
 
+
 print()
 print('1HMM results')
+print('n_components', _1hmm.n_components)
 print('test score', _1hmm.score(Xtest, ytest))
 print('anomalies score', _1hmm.score(Xanom, yanom))
 _1hmm_auc, _1hmm_fpr, _1hmm_tpr = data_utils.get_auc(_1hmm, Xtest, ytest, Xanom, yanom)
 print('AUC', _1hmm_auc)
-
+np.savetxt('1hmm_roc.csv', np.concatenate([_1hmm_fpr.reshape(-1,1), _1hmm_tpr.reshape(-1,1)], axis=1), delimiter=',')
 
 print()
 print('KHMM results')
+print('n_components', khmm.n_components)
 print('test score', khmm.score(Xtest, ytest))
 print('anomalies score', khmm.score(Xanom, yanom))
 khmm_auc, khmm_fpr, khmm_tpr = data_utils.get_auc(khmm, Xtest, ytest, Xanom, yanom)
 print('AUC', khmm_auc)
+np.savetxt('khmm_roc.csv', np.concatenate([khmm_fpr.reshape(-1,1), khmm_tpr.reshape(-1,1)], axis=1), delimiter=',')
 
 print()
 print('MHMM results')
-mhmm_sparsity = np.sum(mhmm.mixCoef == 0.)
+print('mix_dim', mhmm.mix_dim)
+print('n_components', mhmm.n_components)
+mhmm_sparsity = np.sum(np.isclose(mhmm.mixCoef, 0.))
 print('sparsity', mhmm_sparsity, 'rel', mhmm_sparsity/(mhmm.n_nodes * mhmm.mix_dim))
+print('reg_obj', reg_graph(A, mhmm.mixCoef))
 print('test score', mhmm.score(Xtest, ytest))
 print('anomalies score', mhmm.score(Xanom, yanom))
 mhmm_auc, mhmm_fpr, mhmm_tpr = data_utils.get_auc(mhmm, Xtest, ytest, Xanom, yanom)
 print('AUC', mhmm_auc)
+np.savetxt('mhmm_roc.csv', np.concatenate([mhmm_fpr.reshape(-1,1), mhmm_tpr.reshape(-1,1)], axis=1), delimiter=',')
 
 print()
 print('SpaMHMM results')
-spamhmm_sparsity = np.sum(spamhmm.mixCoef == 0.)
+print('mix_dim', spamhmm.mix_dim)
+print('n_components', spamhmm.n_components)
+print('reg', spamhmm.graph[1,0]/A[1,0])
+spamhmm_sparsity = np.sum(np.isclose(spamhmm.mixCoef, 0.))
 print('sparsity', spamhmm_sparsity, 'rel', spamhmm_sparsity/(spamhmm.n_nodes * spamhmm.mix_dim))
+print('reg_obj', reg_graph(A, spamhmm.mixCoef))
 print('test score', spamhmm.score(Xtest, ytest))
 print('anomalies score', spamhmm.score(Xanom, yanom))
 spamhmm_auc, spamhmm_fpr, spamhmm_tpr = data_utils.get_auc(spamhmm, Xtest, ytest, Xanom, yanom)
 print('AUC', spamhmm_auc)
+np.savetxt('spamhmm_roc.csv', np.concatenate([spamhmm_fpr.reshape(-1,1), spamhmm_tpr.reshape(-1,1)], axis=1), delimiter=',')

@@ -16,9 +16,8 @@ def relu_normalization(x, axis=0):
   return num / np.expand_dims(z.sum(axis), axis)
   
 
-def reg_relu(G, theta):
-  K, M = theta.shape
-  alpha = relu_normalization(theta, axis=1)
+def reg_graph(G, alpha):
+  K, M = alpha.shape
   r = 0.
   
   for k in range(K):
