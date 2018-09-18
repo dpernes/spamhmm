@@ -3,52 +3,6 @@ import numpy as np
 from pandas import read_csv
 from sklearn import preprocessing, metrics
 from sklearn.decomposition import PCA
-import matplotlib.pyplot as plt
-plt.switch_backend('Agg')
-
-# '''
-# Builds one stream per AP and per day. Discards APs where data is missing. 
-# Returns: 
-#   streams - an N x A x L x F np.array containing all sequences for every AP. 
-#   ap_ids - the IDs of all APs that have not been discarded.
-# '''
-# def build_balanced_streams(data_path):
-#   if not os.path.isfile(data_path):
-#     return
-    
-#   df = read_csv(data_path, names=['APid','Year','Month','Day','Hour','UserCount',
-#         'SessionCount','Duration','InputOctet','OutputOctet','InputPacket',
-#         'OutputPacket','F0','F1','F2','Bool'])
-  
-#   # remove APs for which we don't have 4 observations in every hour
-#   df_keys = df[['Year','Month','Day','Hour']].drop_duplicates()
-#   df_access_points = df[['APid']].drop_duplicates()
-#   df_grp = df.groupby(['APid','Year','Month','Day','Hour'])
-#   ap_to_del = []
-#   for ap in df_access_points.itertuples(index=False):
-#     for key in df_keys.itertuples(index=False):
-#       if ap not in ap_to_del:
-#         if (ap + key) in df_grp.groups:
-#           L = len(df_grp.get_group(ap + key))
-#           if L != 4:
-#             ap_to_del.append(ap)
-#         else:
-#           ap_to_del.append(ap)
-  
-#   for ap in ap_to_del:
-#     df.drop(df[df['APid'] == ap].index, inplace=True)
-  
-#   A = len(df[['APid']].drop_duplicates()) # number of access points after dropping
-#   N = len(df[['Year','Month','Day']].drop_duplicates()) # number of training examples (days) for each AP
-#   data = df.as_matrix(columns=['APid','F0','F1','F2'])
-#   L = data.shape[0]//(A*N) # sequence length
-#   streams = np.zeros((N,A,L,3))
-#   ap_ids = np.zeros(A, dtype=int)
-#   for i in range(A):
-#     streams[:,i,:,:] = data[i*N*L : (i+1)*N*L, 1::].reshape(N,L,3)
-#     ap_ids[i] = int(data[i*N*L, 0])
-  
-#   return streams, ap_ids
 
 ''' 
 Builds one stream per AP and per day. Does not discard any data.
@@ -211,10 +165,6 @@ def get_auc(mdl, Xneg, yneg, Xpos, ypos):
     fpr_i, tpr_i = positive_rates(scores_neg, scores_pos, thr)
     fpr.append(fpr_i)
     tpr.append(tpr_i)  
-  
-  plt.figure()
-  plt.plot(fpr, tpr)
-  plt.savefig(mdl.name + '_roc.png')
   
   auc = metrics.auc(fpr, tpr)
   
