@@ -47,7 +47,6 @@ class SpaMHMM(BaseEstimator):
             X = np.concatenate(X)
 
         self.mixCoefUnNorm = np.random.rand(self.n_nodes, self.mix_dim) + 1e-9
-        # self.mixCoefUnNorm = np.ones((self.n_nodes, self.mix_dim))
         self.mixCoef = relu_normalization(self.mixCoefUnNorm, axis=1)
 
         startProb = np.exp(np.random.randn(self.mix_dim, self.n_components))
