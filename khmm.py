@@ -57,19 +57,16 @@ class KHMM(BaseEstimator):
             lengthsk = [lengths[i] for i in range(len(lengths)) if y[i] == k]
             if not lengthsk:
                 continue
-            Xk = np.concatenate([X[i:j, :]
-                                 for (seq_idx, (i, j) in
-                                      enumerate(iter_from_X_lengths(X,
-                                                                    lengths)))
+            Xk = np.concatenate([X[i:j, :] for seq_idx, (i, j)
+                                 in enumerate(iter_from_X_lengths(X, lengths))
                                  if y[seq_idx] == k], axis=0)
             yk = np.array([0 for i in range(len(lengthsk))])
 
             if valid_data is not None:
-                Xk_valid = np.concatenate([X_valid[i:j, :]
-                                           for (seq_idx, (i, j) in
-                                                enumerate(iter_from_X_lengths(
-                                                              X_valid,
-                                                              lengths_valid)))
+                Xk_valid = np.concatenate([X_valid[i:j, :] for seq_idx, (i, j)
+                                           in enumerate(iter_from_X_lengths(
+                                                            X_valid,
+                                                            lengths_valid))
                                            if y_valid[seq_idx] == k], axis=0)
                 lengthsk_valid = [lengths_valid[i]
                                   for i in range(len(lengths_valid))
