@@ -16,3 +16,7 @@ respective datasets (see informations below).
 
 Anisa Allahdadi, Ricardo Morla, and Jaime S Cardoso. *802.11 wireless simulation and anomaly
 detection using HMM and UBM.* CoRR, abs/1707.02933, 2017. URL http://arxiv.org/abs/1707.02933.
+
+## Pre-trained models
+
+Pre-trained models for both datasets are available [here](https://drive.google.com/file/d/1AIuJnuS-INel0l07ZoHBw5QgaMWYaJnc/view?usp=sharing).
