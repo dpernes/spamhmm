@@ -4,7 +4,7 @@ Sparse Mixture of Hidden Markov Models for Graph Connected Entities
 ## Description
 Source code for the implementation of SpaMHMM, as described in the paper:
 
-**Diogo Pernes and Jaime S. Cardoso, *SpaMHMM: Sparse Mixture of Hidden Markov Models for Graph Connected Entities*, under review for the Seventh International Conference on Learning Representations (ICLR 2019).**
+**Diogo Pernes and Jaime S. Cardoso, SpaMHMM: Sparse Mixture of Hidden Markov Models for Graph Connected Entities, under review for the *Seventh International Conference on Learning Representations* (ICLR 2019).**
 
 The experiments described there may be reproduced by running the scripts ```wifi_test.py``` and ```h36m_test.py```after downloading the
 respective datasets (see informations below).
