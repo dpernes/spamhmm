@@ -16,7 +16,7 @@ respective datasets (see informations below).
 Anisa Allahdadi, Ricardo Morla, and Jaime S Cardoso. "802.11 wireless simulation and anomaly
 detection using HMM and UBM". *CoRR*, abs/1707.02933, 2017. URL http://arxiv.org/abs/1707.02933.
 
-**Human 3.6M dataset:** preprocessed data can be downloaded from [this link](http://www.cs.stanford.edu/people/ashesh/h3.6m.zip) (external provider). Please do not forget to check the dataset license agreement, available at the [Human 3.6M dataset website](http://vision.imar.ro/human3.6m/description.php).
+**Human3.6M dataset:** preprocessed data can be downloaded from [this link](http://www.cs.stanford.edu/people/ashesh/h3.6m.zip) (external provider). Please do not forget to check the dataset license agreement, available at the [Human3.6M dataset website](http://vision.imar.ro/human3.6m/description.php).
 
 ## Pre-trained models
 
