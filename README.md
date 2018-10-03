@@ -20,4 +20,4 @@ detection using HMM and UBM. *CoRR*, abs/1707.02933, 2017. URL http://arxiv.org/
 
 ## Pre-trained models
 
-Pre-trained models for both datasets are available [here](https://drive.google.com/file/d/1AIuJnuS-INel0l07ZoHBw5QgaMWYaJnc/view?usp=sharing).
+Pre-trained models for both datasets are available [here](https://drive.google.com/open?id=1AIuJnuS-INel0l07ZoHBw5QgaMWYaJnc).
