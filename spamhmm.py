@@ -327,7 +327,6 @@ class SpaMHMM(BaseEstimator):
                 range [0, n_nodes-1].
             lengths - list containing the lengths of each individual sequence
                       in X, with size n_sequences.
-
             valid_data - tuple (X_valid, y_valid, lengths_valid) containing the
                          validation data; if validation data is given, the
                          model with the lowest validation loss is saved in a
@@ -480,7 +479,7 @@ class SpaMHMM(BaseEstimator):
             y - the node index, integer.
             n_samples - the number of samples, integer.
             Xpref - prefix sequence, np.array of size (pref_len, n_features)
-                            (optional, default: None).
+                    (optional, default: None).
         Outputs:
             X - sampled sequence, np.array of size (n_samples, n_features)
             mix_idx - the component which the sequence was sampled from,
