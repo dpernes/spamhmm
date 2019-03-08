@@ -4,7 +4,7 @@ https://github.com/asheshjain399/RNNexp/blob/master/structural_rnn/CRFProblems/H
 which is part of the source code for the paper:
 
 Ashesh Jain, et al. "Structural-RNN: Deep learning on spatio-temporal graphs."
-Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition. 2016.
+Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR). 2016.
 """
 
 

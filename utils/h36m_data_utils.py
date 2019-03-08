@@ -4,15 +4,11 @@ https://github.com/una-dinosauria/human-motion-prediction/blob/master/src/data_u
 which is part of the source code for the paper:
 
 Julieta Martinez, et al. "On human motion prediction using recurrent neural networks."
-Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition. 2017.
+Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR). 2017.
 """
 
 
 """Functions that help with data processing for human3.6m"""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import numpy as np
 from six.moves import xrange # pylint: disable=redefined-builtin
@@ -71,7 +67,7 @@ def quat2expmap(q):
     coshalftheta = q[0]
 
     r0        = (np.divide( q[1:], (np.linalg.norm(q[1:])
-                 + np.finfo(np.float32).eps))
+                 + np.finfo(np.float32).eps)))
     theta = 2 * np.arctan2( sinhalftheta, coshalftheta )
     theta = np.mod( theta + 2*np.pi, 2*np.pi )
 
