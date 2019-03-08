@@ -4,7 +4,7 @@ Sparse Mixture of Hidden Markov Models for Graph Connected Entities
 ## Description
 Source code for the implementation of SpaMHMM, as described in the paper:
 
-**Diogo Pernes and Jaime S. Cardoso. "SpaMHMM: Sparse Mixture of Hidden Markov Models for Graph Connected Entities". Under review for the *Seventh International Conference on Learning Representations (ICLR 2019)*.**
+**Diogo Pernes and Jaime S. Cardoso. "SpaMHMM: Sparse Mixture of Hidden Markov Models for Graph Connected Entities". To be presented at the *2019 International Joint Conference on Neural Networks (IJCNN)*.**
 
 The experiments described there may be reproduced by running the scripts ```wifi_test.py``` and ```h36m_test.py```after downloading the
 respective datasets (see informations below).
@@ -16,4 +16,4 @@ respective datasets (see informations below).
 Anisa Allahdadi, Ricardo Morla, and Jaime S Cardoso. "802.11 wireless simulation and anomaly
 detection using HMM and UBM". *CoRR*, abs/1707.02933, 2017. URL http://arxiv.org/abs/1707.02933.
 
-**Human3.6M dataset:** preprocessed data can be downloaded from [this link](http://www.cs.stanford.edu/people/ashesh/h3.6m.zip) (external provider). Please do not forget to check the dataset license agreement, available at the [Human3.6M dataset website](http://vision.imar.ro/human3.6m/description.php).
+**Human3.6M dataset:** preprocessed data can be downloaded from [this link](http://www.cs.stanford.edu/people/ashesh/h3.6m.zip) (third party provider). Please do not forget to check the dataset license agreement, available at the [Human3.6M dataset website](http://vision.imar.ro/human3.6m/description.php).
