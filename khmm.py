@@ -1,7 +1,8 @@
-from sklearn.base import BaseEstimator
-from spamhmm import SpaMHMM
-from hmmlearn.utils import iter_from_X_lengths
 import numpy as np
+from hmmlearn.utils import iter_from_X_lengths
+from sklearn.base import BaseEstimator
+
+from spamhmm import SpaMHMM
 
 
 class KHMM(BaseEstimator):
@@ -28,8 +29,8 @@ class KHMM(BaseEstimator):
                             n_iter=self.n_iter,
                             tol=self.tol,
                             verbose=self.verbose,
-                            name=(self.name+'_'+str(i)
-                                  for i in range(self.n_nodes)))]
+                            name=(self.name+'_'+str(i)))
+                    for i in range(self.n_nodes)]
 
     def fit(self, X, y, lengths=None, valid_data=None):
         trainloss_hist = []
@@ -65,8 +66,8 @@ class KHMM(BaseEstimator):
             if valid_data is not None:
                 Xk_valid = np.concatenate([X_valid[i:j, :] for seq_idx, (i, j)
                                            in enumerate(iter_from_X_lengths(
-                                                            X_valid,
-                                                            lengths_valid))
+                                               X_valid,
+                                               lengths_valid))
                                            if y_valid[seq_idx] == k], axis=0)
                 lengthsk_valid = [lengths_valid[i]
                                   for i in range(len(lengths_valid))
