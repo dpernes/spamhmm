@@ -14,7 +14,7 @@ import utils.h36m_processdata as poseDataset
 parser = argparse.ArgumentParser(description='Script configurations.')
 parser.add_argument('--action', type=str, default='walking')
 parser.add_argument('--data_path', type=str, default='./h36m_data')
-parser.add_argument('--models_path', type=str, default='./models')
+parser.add_argument('--models_path', type=str, default='./pretrained_models')
 parser.add_argument('--train', type=int, default=0)
 parser.add_argument('--cv', type=int, default=0)
 parser.add_argument('--train_mhmm', type=int, default=1)

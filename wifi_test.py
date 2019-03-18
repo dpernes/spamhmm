@@ -11,7 +11,7 @@ import argparse
 
 parser = argparse.ArgumentParser(description='Script configurations.')
 parser.add_argument('--data_dir', type=str, default='./wifi_data')
-parser.add_argument('--models_path', type=str, default='./models')
+parser.add_argument('--models_path', type=str, default='./pretrained_models')
 parser.add_argument('--distance_matrix_path', type=str,
                     default='./wifi_data/distance_matrix.csv')
 parser.add_argument('--roc_path', type=str, default='.')
