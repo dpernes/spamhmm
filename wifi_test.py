@@ -293,7 +293,7 @@ mhmm_auc, mhmm_fpr, mhmm_tpr = data_utils.get_auc(mhmm, Xtest, ytest, Xanom,
 print('AUC', mhmm_auc)
 np.savetxt('mhmm_roc.csv', np.concatenate([mhmm_fpr.reshape(-1, 1),
                                            mhmm_tpr.reshape(-1, 1)],
-                                          axis=1),  delimiter=',')
+                                          axis=1), delimiter=',')
 
 print()
 print('SpaMHMM results')

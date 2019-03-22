@@ -143,10 +143,10 @@ class SpaMHMM(BaseEstimator):
                 If mixCoef have an invalid shape or do not sum to 1.
         '''
         if self.mixCoef.shape != (self.n_nodes, self.mix_dim):
-                raise ValueError('mixCoef must have length n_components')
+            raise ValueError('mixCoef must have length n_components')
         if not np.allclose(self.mixCoef.sum(axis=1), 1.0):
-                raise ValueError('mixCoef must sum to 1.0 (got {0:.4f})'
-                                 .format(self.mixCoef.sum(axis=1)))
+            raise ValueError('mixCoef must sum to 1.0 (got {0:.4f})'
+                             .format(self.mixCoef.sum(axis=1)))
 
     def _compute_mixture_posteriors(self, X, y, lengths):
         '''
@@ -196,7 +196,7 @@ class SpaMHMM(BaseEstimator):
                     continue
 
                 framelogprob = self.mixModels[m]._compute_log_likelihood(X[i:j,
-                                                                         :])
+                                                                           :])
                 _, fwdlattice = (self.mixModels[m]
                                  ._do_forward_pass(framelogprob))
                 bwdlattice = self.mixModels[m]._do_backward_pass(framelogprob)
